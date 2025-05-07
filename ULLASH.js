@@ -9,7 +9,7 @@ const { execSync } = require('child_process');
 const log = require('./logger/log.js');
 const path = require("path");
 
-process.env.BLUEBIRD_W_FORGOTTEN_RETURN = 0; // Disable warning: "Warning: a promise was created in a handler but was not returned from it"
+process.env.BLUEBIRD_W_FORGOTTEN_RETURN = 0;
 
 function validJSON(pathDir) {
 	try {
@@ -41,60 +41,53 @@ for (const pathDir of [dirConfig, dirConfigCommands]) {
 		process.exit(0);
 	}
 }
+
 const config = require(dirConfig);
 if (config.whiteListMode?.whiteListIds && Array.isArray(config.whiteListMode.whiteListIds))
 	config.whiteListMode.whiteListIds = config.whiteListMode.whiteListIds.map(id => id.toString());
 const configCommands = require(dirConfigCommands);
 
 global.GoatBot = {
-	startTime: Date.now() - process.uptime() * 1000, // time start bot (ms)
-	commands: new Map(), // store all commands
-	eventCommands: new Map(), // store all event commands
-	commandFilesPath: [], // [{ filePath: "", commandName: [] }
-	eventCommandsFilesPath: [], // [{ filePath: "", commandName: [] }
-	aliases: new Map(), // store all aliases
-	onFirstChat: [], // store all onFirstChat [{ commandName: "", threadIDsChattedFirstTime: [] }}]
-	onChat: [], // store all onChat
-	onEvent: [], // store all onEvent
-	onReply: new Map(), // store all onReply
-	onReaction: new Map(), // store all onReaction
-	onAnyEvent: [], // store all onAnyEvent
-	config, // store config
-	configCommands, // store config commands
-	envCommands: {}, // store env commands
-	envEvents: {}, // store env events
-	envGlobal: {}, // store env global
-	reLoginBot: function () { }, // function relogin bot, will be set in bot/login/login.js
-	Listening: null, // store current listening handle
-	oldListening: [], // store old listening handle
-	callbackListenTime: {}, // store callback listen 
-	storage5Message: [], // store 5 message to check listening loop
-	fcaApi: null, // store fca api
-	botID: null // store bot id
+	startTime: Date.now() - process.uptime() * 1000,
+	commands: new Map(),
+	eventCommands: new Map(),
+	commandFilesPath: [],
+	eventCommandsFilesPath: [],
+	aliases: new Map(),
+	onFirstChat: [],
+	onChat: [],
+	onEvent: [],
+	onReply: new Map(),
+	onReaction: new Map(),
+	onAnyEvent: [],
+	config,
+	configCommands,
+	envCommands: {},
+	envEvents: {},
+	envGlobal: {},
+	reLoginBot: function () { },
+	Listening: null,
+	oldListening: [],
+	callbackListenTime: {},
+	storage5Message: [],
+	fcaApi: null,
+	botID: null
 };
 
 global.db = {
-	// all data
 	allThreadData: [],
 	allUserData: [],
 	allDashBoardData: [],
 	allGlobalData: [],
-
-	// model
 	threadModel: null,
 	userModel: null,
 	dashboardModel: null,
 	globalModel: null,
-
-	// handle data
 	threadsData: null,
 	usersData: null,
 	dashBoardData: null,
 	globalData: null,
-
 	receivedTheFirstMessage: {}
-
-	// all will be set in bot/login/loadData.js
 };
 
 global.client = {
@@ -119,7 +112,7 @@ const { colors } = utils;
 global.temp = {
 	createThreadData: [],
 	createUserData: [],
-	createThreadDataError: [], // Can't get info of groups with instagram members
+	createThreadDataError: [],
 	filesOfGoogleDrive: {
 		arraybuffer: {},
 		stream: {},
@@ -131,7 +124,6 @@ global.temp = {
 	}
 };
 
-// watch dirConfigCommands file and dirConfig
 const watchAndReloadConfig = (dir, type, prop, logName) => {
 	let lastModified = fs.statSync(dir).mtimeMs;
 	let isFirstModified = true;
@@ -139,16 +131,12 @@ const watchAndReloadConfig = (dir, type, prop, logName) => {
 	fs.watch(dir, (eventType) => {
 		if (eventType === type) {
 			const oldConfig = global.GoatBot[prop];
-
-			// wait 200ms to reload config
 			setTimeout(() => {
 				try {
-					// if file change first time (when start bot, maybe you know it's called when start bot?) => not reload
 					if (isFirstModified) {
 						isFirstModified = false;
 						return;
 					}
-					// if file not change => not reload
 					if (lastModified === fs.statSync(dir).mtimeMs) {
 						return;
 					}
@@ -174,10 +162,8 @@ global.GoatBot.envGlobal = global.GoatBot.configCommands.envGlobal;
 global.GoatBot.envCommands = global.GoatBot.configCommands.envCommands;
 global.GoatBot.envEvents = global.GoatBot.configCommands.envEvents;
 
-// ———————————————— LOAD LANGUAGE ———————————————— //
 const getText = global.utils.getText;
 
-// ———————————————— AUTO RESTART ———————————————— //
 if (config.autoRestart) {
 	const time = config.autoRestart.time;
 	if (!isNaN(time) && time > 0) {
@@ -198,7 +184,6 @@ if (config.autoRestart) {
 }
 
 (async () => {
-	// ———————————————— SETUP MAIL ———————————————— //
 	const { gmailAccount } = config.credentials;
 	const { email, clientId, clientSecret, refreshToken } = gmailAccount;
 	const OAuth2 = google.auth.OAuth2;
@@ -252,8 +237,8 @@ if (config.autoRestart) {
 	global.utils.sendMail = sendMail;
 	global.utils.transporter = transporter;
 
-	// ———————————————— CHECK VERSION ———————————————— //
-	const { data: { version } } = await axios.get("https://raw.githubusercontent.com/ARYAN-BOT-404/Bestbot/refs/heads/main/package.json");
+	// ———————————————— CHECK VERSION (FIXED) ———————————————— //
+	const { data: { version } } = await axios.get("https://raw.githubusercontent.com/ARYAN-BOT-404/Bestbot/main/package.json");
 	const currentVersion = require("./package.json").version;
 	if (compareVersion(version, currentVersion) === 1)
 		utils.log.master("NEW VERSION", getText(
@@ -263,10 +248,10 @@ if (config.autoRestart) {
 			colors.hex("#eb6a07", version),
 			colors.hex("#eb6a07", "node update")
 		));
-	// —————————— CHECK FOLDER GOOGLE DRIVE —————————— //
+
 	const parentIdGoogleDrive = await utils.drive.checkAndCreateParentFolder("GoatBot");
 	utils.drive.parentID = parentIdGoogleDrive;
-	// ———————————————————— LOGIN ———————————————————— //
+
 	require(`./bot/login/login${NODE_ENV === 'development' ? '.dev.js' : '.js'}`);
 })();
 
@@ -275,9 +260,9 @@ function compareVersion(version1, version2) {
 	const v2 = version2.split(".");
 	for (let i = 0; i < 3; i++) {
 		if (parseInt(v1[i]) > parseInt(v2[i]))
-			return 1; // version1 > version2
+			return 1;
 		if (parseInt(v1[i]) < parseInt(v2[i]))
-			return -1; // version1 < version2
+			return -1;
 	}
-	return 0; // version1 = version2
+	return 0;
 }
